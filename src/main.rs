@@ -1,3 +1,7 @@
+extern crate meald_rust;
+
 fn main() {
-    println!("Hello, world!");
+    if let Err(error) = meald_rust::solve() {
+        eprintln!("Application error: {}", error);
+    }
 }
