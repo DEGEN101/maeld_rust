@@ -1,13 +1,9 @@
-<<<<<<< HEAD
-# MEAL(D) Solver Rust
-=======
 # MAEL(D) Solver Rust
->>>>>>> main
 
 ## TODO
 
 ### 1. Formula Parsing
-- [ ] Lexer
+- [X] Lexer
 - [ ] Parser
 
 ### 2. Tableau Graph & Solver
