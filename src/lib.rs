@@ -2,7 +2,6 @@ use anyhow::Result;
 
 use crate::lexer::{Lexer, LexerToken};
 
-mod formula;
 mod lexer;
 
 pub fn solve() -> Result<()> {

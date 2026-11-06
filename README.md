@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # MEAL(D) Solver Rust
+=======
+# MAEL(D) Solver Rust
+>>>>>>> main
 
 ## TODO
 
