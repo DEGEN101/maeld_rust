@@ -3,7 +3,7 @@
 ## TODO
 
 ### 1. Formula Parsing
-- [ ] Lexer
+- [X] Lexer
 - [ ] Parser
 
 ### 2. Tableau Graph & Solver
