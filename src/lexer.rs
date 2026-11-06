@@ -19,6 +19,7 @@ pub enum LexerToken {
     Biconditional,
     LeftParen,
     RightParen,
+    EoF,
 }
 
 #[derive(Debug, Error)]
@@ -191,6 +192,7 @@ impl Lexer {
             };
         }
 
+        tokens.push(LexerToken::EoF);
         Ok(tokens)
     }
 }
@@ -204,12 +206,12 @@ mod tests {
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("begin").unwrap();
 
-        assert_eq!(vec![LexerToken::Begin], result);
+        assert_eq!(vec![LexerToken::Begin, LexerToken::EoF], result);
 
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("end").unwrap();
 
-        assert_eq!(vec![LexerToken::End], result);
+        assert_eq!(vec![LexerToken::End, LexerToken::EoF], result);
     }
 
     #[test]
@@ -217,12 +219,12 @@ mod tests {
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("true").unwrap();
 
-        assert_eq!(vec![LexerToken::True], result);
+        assert_eq!(vec![LexerToken::True, LexerToken::EoF], result);
 
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("false").unwrap();
 
-        assert_eq!(vec![LexerToken::False], result);
+        assert_eq!(vec![LexerToken::False, LexerToken::EoF], result);
     }
 
     #[test]
@@ -230,13 +232,13 @@ mod tests {
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("p1").unwrap();
 
-        assert_eq!(vec![LexerToken::Atom(1)], result);
+        assert_eq!(vec![LexerToken::Atom(1), LexerToken::EoF], result);
     }
 
     #[test]
     fn tokenize_not_atom() {
         let mut lexer = Lexer::new();
-        let expected = vec![LexerToken::Not, LexerToken::Atom(3)];
+        let expected = vec![LexerToken::Not, LexerToken::Atom(3), LexerToken::EoF];
         let result = lexer.tokenize("~p3").unwrap();
 
         assert_eq!(expected, result);
@@ -247,7 +249,7 @@ mod tests {
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("[r1]").unwrap();
 
-        assert_eq!(vec![LexerToken::Box(1)], result);
+        assert_eq!(vec![LexerToken::Box(1), LexerToken::EoF], result);
     }
 
     #[test]
@@ -255,7 +257,7 @@ mod tests {
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("<r1>").unwrap();
 
-        assert_eq!(vec![LexerToken::Diamond(1)], result);
+        assert_eq!(vec![LexerToken::Diamond(1), LexerToken::EoF], result);
     }
 
     #[test]
@@ -263,18 +265,25 @@ mod tests {
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("D").unwrap();
 
-        assert_eq!(vec![LexerToken::DistributedKnowledge], result);
+        assert_eq!(
+            vec![LexerToken::DistributedKnowledge, LexerToken::EoF],
+            result
+        );
 
         let mut lexer = Lexer::new();
         let result = lexer.tokenize("C").unwrap();
 
-        assert_eq!(vec![LexerToken::CommonKnowledge], result);
+        assert_eq!(vec![LexerToken::CommonKnowledge, LexerToken::EoF], result);
     }
 
     #[test]
     fn tokenize_parentheses() {
         let mut lexer = Lexer::new();
-        let expected = vec![LexerToken::LeftParen, LexerToken::RightParen];
+        let expected = vec![
+            LexerToken::LeftParen,
+            LexerToken::RightParen,
+            LexerToken::EoF,
+        ];
         let result = lexer.tokenize("()").unwrap();
 
         assert_eq!(expected, result);
@@ -283,7 +292,12 @@ mod tests {
     #[test]
     fn basic_tokenization() {
         let mut lexer = Lexer::new();
-        let expected = vec![LexerToken::Begin, LexerToken::Atom(2), LexerToken::End];
+        let expected = vec![
+            LexerToken::Begin,
+            LexerToken::Atom(2),
+            LexerToken::End,
+            LexerToken::EoF,
+        ];
         let result = lexer.tokenize("begin p2 end").unwrap();
 
         assert_eq!(expected, result);
@@ -309,6 +323,7 @@ mod tests {
             LexerToken::CommonKnowledge,
             LexerToken::Atom(1),
             LexerToken::End,
+            LexerToken::EoF,
         ];
         let result = lexer
             .tokenize("begin [r1](p1 -> p2) & [r2]p1 & ~DCp1 end")
