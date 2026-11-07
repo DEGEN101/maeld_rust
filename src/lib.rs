@@ -5,6 +5,7 @@ use crate::{
     parser::Parser,
 };
 
+mod custom_macros;
 mod formula;
 mod lexer;
 mod parser;

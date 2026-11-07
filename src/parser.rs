@@ -1,4 +1,4 @@
-use crate::{formula::Formula, lexer::lexer_tokens::LexerToken};
+use crate::{custom_macros::boxed, formula::Formula, lexer::lexer_tokens::LexerToken};
 use anyhow::{Result, anyhow};
 use thiserror::Error;
 
@@ -105,14 +105,14 @@ impl<'a> Parser<'a> {
             Some(LexerToken::Biconditional) => {
                 self._consume(LexerToken::Biconditional)?;
 
-                let not_left = Box::new(Formula::Not(left.clone()));
+                let not_left = boxed!(Formula::Not(left.clone()));
                 let right = self._parse_biconditional()?;
-                let not_right = Box::new(Formula::Not(right.clone()));
+                let not_right = boxed!(Formula::Not(right.clone()));
 
-                let left_implies_right = Box::new(Formula::Or(vec![not_left, right]));
-                let right_implies_left = Box::new(Formula::Or(vec![not_right, left]));
+                let left_implies_right = boxed!(Formula::Or(vec![not_left, right]));
+                let right_implies_left = boxed!(Formula::Or(vec![not_right, left]));
 
-                Ok(Box::new(Formula::Or(vec![
+                Ok(boxed!(Formula::Or(vec![
                     left_implies_right,
                     right_implies_left,
                 ])))
@@ -133,10 +133,10 @@ impl<'a> Parser<'a> {
             Some(LexerToken::Implication) => {
                 self._consume(LexerToken::Implication)?;
 
-                let not_left = Box::new(Formula::Not(left));
+                let not_left = boxed!(Formula::Not(left));
                 let right = self._parse_implication()?;
 
-                Ok(Box::new(Formula::Or(vec![not_left, right])))
+                Ok(boxed!(Formula::Or(vec![not_left, right])))
             }
             Some(_) => Ok(left),
             None => {
@@ -156,7 +156,7 @@ impl<'a> Parser<'a> {
 
                 let right = self._parse_or()?;
 
-                Ok(Box::new(Formula::Or(vec![left, right])))
+                Ok(boxed!(Formula::Or(vec![left, right])))
             }
             Some(_) => Ok(left),
             None => {
@@ -176,7 +176,7 @@ impl<'a> Parser<'a> {
 
                 let right = self._parse_and()?;
 
-                Ok(Box::new(Formula::And(vec![left, right])))
+                Ok(boxed!(Formula::And(vec![left, right])))
             }
             Some(_) => Ok(left),
             None => {
@@ -194,7 +194,7 @@ impl<'a> Parser<'a> {
 
                 let subformula = self._parse_unary_operators()?;
 
-                Ok(Box::new(Formula::Not(subformula)))
+                Ok(boxed!(Formula::Not(subformula)))
             }
             Some(LexerToken::Box(id)) => {
                 let agent_id = *id;
@@ -202,16 +202,16 @@ impl<'a> Parser<'a> {
 
                 let subformula = self._parse_unary_operators()?;
 
-                Ok(Box::new(Formula::Knowledge(agent_id, subformula)))
+                Ok(boxed!(Formula::Knowledge(agent_id, subformula)))
             }
             Some(LexerToken::Diamond(id)) => {
                 let agent_id = *id;
                 self._consume(LexerToken::Diamond(agent_id))?;
 
                 let subformula = self._parse_unary_operators()?;
-                let neg_subformula = Box::new(Formula::Not(subformula));
+                let neg_subformula = boxed!(Formula::Not(subformula));
 
-                Ok(Box::new(Formula::Not(Box::new(Formula::Knowledge(
+                Ok(boxed!(Formula::Not(boxed!(Formula::Knowledge(
                     agent_id,
                     neg_subformula,
                 )))))
@@ -221,14 +221,14 @@ impl<'a> Parser<'a> {
 
                 let subformula = self._parse_unary_operators()?;
 
-                Ok(Box::new(Formula::DistributedKnowledge(subformula)))
+                Ok(boxed!(Formula::DistributedKnowledge(subformula)))
             }
             Some(LexerToken::CommonKnowledge) => {
                 self._consume(LexerToken::CommonKnowledge)?;
 
                 let subformula = self._parse_unary_operators()?;
 
-                Ok(Box::new(Formula::CommonKnowledge(subformula)))
+                Ok(boxed!(Formula::CommonKnowledge(subformula)))
             }
             Some(_) => self._parse_primitives(),
             None => {
@@ -243,16 +243,16 @@ impl<'a> Parser<'a> {
         match self._peek() {
             Some(LexerToken::True) => {
                 self._consume(LexerToken::True)?;
-                Ok(Box::new(Formula::True))
+                Ok(boxed!(Formula::True))
             }
             Some(LexerToken::False) => {
                 self._consume(LexerToken::False)?;
-                Ok(Box::new(Formula::False))
+                Ok(boxed!(Formula::False))
             }
             Some(LexerToken::Atom(id)) => {
                 let temp_id = *id;
                 self._consume(LexerToken::Atom(temp_id))?;
-                Ok(Box::new(Formula::Atom(temp_id)))
+                Ok(boxed!(Formula::Atom(temp_id)))
             }
             Some(LexerToken::LeftParen) => {
                 self._consume(LexerToken::LeftParen)?;
@@ -282,5 +282,158 @@ impl<'a> Parser<'a> {
                 )));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{custom_macros::fml_vec, formula::Formula, lexer::Lexer};
+
+    fn tokenize(fml_str: &str) -> Result<Vec<LexerToken>> {
+        let mut lexer = Lexer::new();
+        lexer.tokenize(fml_str)
+    }
+
+    fn parse_formula(fml_str: &str) -> Result<Box<Formula>> {
+        let tokens = tokenize(fml_str)?;
+        let mut parser = Parser::new(&tokens);
+        parser.parse()
+    }
+
+    #[test]
+    fn parse_primitive_tokens() -> Result<()> {
+        // Test parsing true
+        let result = parse_formula("begin true end")?;
+        assert_eq!(boxed!(Formula::True), result);
+
+        // Test parsing false
+        let result = parse_formula("begin false end")?;
+        assert_eq!(boxed!(Formula::False), result);
+
+        // Test parsing an atom
+        let result = parse_formula("begin p1 end")?;
+        assert_eq!(boxed!(Formula::Atom(1)), result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_modal_op_tokens() -> Result<()> {
+        // Test parsing necessity operator
+        let result = parse_formula("begin [r1]p1 end")?;
+        let expected = boxed!(Formula::Knowledge(1, boxed!(Formula::Atom(1))));
+        assert_eq!(expected, result);
+
+        // Test parsing possibility operator
+        let result = parse_formula("begin <r2>p3 end")?;
+        let expected = boxed!(Formula::Not(boxed!(Formula::Knowledge(
+            2,
+            boxed!(Formula::Not(boxed!(Formula::Atom(3))))
+        ))));
+        assert_eq!(expected, result);
+
+        // Test parsing distributed knowledge operator
+        let result = parse_formula("begin Dp1 end")?;
+        let expected = boxed!(Formula::DistributedKnowledge(boxed!(Formula::Atom(1))));
+        assert_eq!(expected, result);
+
+        // Test parsing common knowledge operator
+        let result = parse_formula("begin Cp1 end")?;
+        let expected = boxed!(Formula::CommonKnowledge(boxed!(Formula::Atom(1))));
+        assert_eq!(expected, result);
+
+        // Test parsing recursive modal operator
+        let result = parse_formula("begin [r1][r1]p1 end")?;
+        let expected = boxed!(Formula::Knowledge(
+            1,
+            boxed!(Formula::Knowledge(1, boxed!(Formula::Atom(1))))
+        ));
+        assert_eq!(expected, result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_and_token() -> Result<()> {
+        // Test parsing simple `and`
+        let result = parse_formula("begin p1 & p2 end")?;
+        let expected = boxed!(Formula::And(fml_vec![Formula::Atom(1), Formula::Atom(2)]));
+        assert_eq!(expected, result);
+
+        // Test parsing complex `and`
+        let result = parse_formula("begin p1 & p2 & p3 end")?;
+        let inner_and = Formula::And(fml_vec![Formula::Atom(2), Formula::Atom(3)]);
+        let expected = boxed!(Formula::And(fml_vec![Formula::Atom(1), inner_and]));
+        assert_eq!(expected, result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_or_token() -> Result<()> {
+        // Test parsing simple `or`
+        let result = parse_formula("begin p1 | p2 end")?;
+        let expected = boxed!(Formula::Or(fml_vec![Formula::Atom(1), Formula::Atom(2)]));
+        assert_eq!(expected, result);
+
+        // Test parsing complex `or`
+        let result = parse_formula("begin p1 | p2 | p3 end")?;
+        let inner_and = Formula::Or(fml_vec![Formula::Atom(2), Formula::Atom(3)]);
+        let expected = boxed!(Formula::Or(fml_vec![Formula::Atom(1), inner_and]));
+        assert_eq!(expected, result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_implication_token() -> Result<()> {
+        // Test parsing and simplification of implication
+        let result = parse_formula("begin p1 -> p2 end")?;
+        let expected = boxed!(Formula::Or(fml_vec![
+            Formula::Not(boxed!(Formula::Atom(1))),
+            Formula::Atom(2)
+        ]));
+        assert_eq!(expected, result);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_biconditional_token() -> Result<()> {
+        // Test parsing and simplification of biconditional
+        let result = parse_formula("begin p1 <-> p2 end")?;
+
+        let p1_implies_p2 = Formula::Or(fml_vec![
+            Formula::Not(boxed!(Formula::Atom(1))),
+            Formula::Atom(2)
+        ]);
+        let p2_implies_p1 = Formula::Or(fml_vec![
+            Formula::Not(boxed!(Formula::Atom(2))),
+            Formula::Atom(1)
+        ]);
+        let expected = boxed!(Formula::And(fml_vec!(p1_implies_p2, p2_implies_p1)));
+
+        assert_eq!(expected, result);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_sample_formula() -> Result<()> {
+        // Test parsing of sample formula
+        let result = parse_formula("begin [r1]p1 & [r2]p1 & ~DCp1 end")?;
+
+        let inner_and = Formula::And(fml_vec![
+            Formula::Knowledge(2, boxed!(Formula::Atom(1))),
+            Formula::Not(boxed!(Formula::DistributedKnowledge(boxed!(
+                Formula::CommonKnowledge(boxed!(Formula::Atom(1)))
+            )))),
+        ]);
+        let expected = boxed!(Formula::And(fml_vec![
+            Formula::Knowledge(1, boxed!(Formula::Atom(1))),
+            inner_and
+        ]));
+
+        assert_eq!(expected, result);
+        Ok(())
     }
 }
