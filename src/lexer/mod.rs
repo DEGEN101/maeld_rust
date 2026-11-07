@@ -1,26 +1,9 @@
+pub mod lexer_tokens;
+
+use lexer_tokens::LexerToken;
+
 use anyhow::{Result, anyhow};
 use thiserror::Error;
-
-#[derive(Debug, PartialEq)]
-pub enum LexerToken {
-    Begin,
-    End,
-    True,
-    False,
-    Atom(usize),
-    Not,
-    Diamond(usize),
-    Box(usize),
-    DistributedKnowledge,
-    CommonKnowledge,
-    And,
-    Or,
-    Implication,
-    Biconditional,
-    LeftParen,
-    RightParen,
-    EoF,
-}
 
 #[derive(Debug, Error)]
 pub enum TokenizationError {
