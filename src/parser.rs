@@ -112,7 +112,7 @@ impl<'a> Parser<'a> {
                 let left_implies_right = boxed!(Formula::Or(vec![not_left, right]));
                 let right_implies_left = boxed!(Formula::Or(vec![not_right, left]));
 
-                Ok(boxed!(Formula::Or(vec![
+                Ok(boxed!(Formula::And(vec![
                     left_implies_right,
                     right_implies_left,
                 ])))
