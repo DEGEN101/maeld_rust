@@ -4,7 +4,7 @@
 
 ### 1. Formula Parsing
 - [X] Lexer
-- [ ] Parser
+- [X] Parser
 
 ### 2. Tableau Graph & Solver
 - [ ] Tableau Graph Representation
